@@ -3,6 +3,7 @@ package com.MPI.blockchain;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,23 +17,24 @@ public class Block {
     private String data;
     private long timestamp;
 
-    public Block(String data, String previousHash, long timeStamp) {
+    public Block(String data, String previousHash) {
         this.data = data;
         this.previousHash = previousHash;
-        this.timestamp = timeStamp;
+        this.timestamp = new Date().getTime();
         this.hash = calculateBlockHash();
     }
 
-    public String mineBlock(int prefix) {
-        String prefixString = new String(new char[prefix]).replace('\0', '0');
-        while (!hash.substring(0, prefix).equals(prefixString)) {
+    public String mineBlock(int difficulty) {
+        String target = new String(new char[difficulty]).replace('\0', '0');
+        while (!hash.substring(0, difficulty).equals(target)) {
             nonce++;
             hash = calculateBlockHash();
         }
+        System.out.println("Block Mined!!! : " + hash);
         return hash;
     }
 
-    private String calculateBlockHash() {
+    public String calculateBlockHash() {
         String dataToHash = previousHash + Long.toString(timestamp) + Integer.toString(nonce) + data;
         MessageDigest digest = null;
         byte[] bytes = null;

@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        int choice = 6;
+        int choice = 8;
         switch (choice) {
             case 1 -> {
                 PracticeOne.run(args);
@@ -56,6 +56,11 @@ public class Main {
             case 7 -> {
                 PracticeSeven practiceSeven = new PracticeSeven();
                 practiceSeven.run(args);
+            }
+            case 8 -> {
+                PracticeEight practiceEight = new PracticeEight();
+                practiceEight.non_par();
+                //practiceEight.run(args);
             }
         }
     }
