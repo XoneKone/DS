@@ -118,4 +118,86 @@ public class Graph {
         MPI.Finalize();
     }
 
+    public boolean check() {
+        boolean isThorus = true;
+        for (int i = 0; i < vertexCount(); i++) {
+            for (int j = 0; j < vertexCount(); j++) {
+                if (matrix[i][j] != matrix[vertexCount() - i - 1][vertexCount() - j - 1]) {
+                    isThorus = false;
+                    break;
+                }
+            }
+        }
+        return isThorus;
+    }
+
+    public void isGraphThorus(String[] args) {
+        MPI.Init(args);
+        int TAG = 0;
+        long startTime = 0;
+        int rank = MPI.COMM_WORLD.Rank();
+        int size = MPI.COMM_WORLD.Size();
+
+        int[] result = new int[1];
+        int[] verticesDegrees = new int[vertexCount()];
+
+        int[] portionsSize = {0};
+
+        if (vertexCount() % size == 0) {
+            portionsSize[0] = vertexCount() / size;
+        } else {
+            portionsSize[0] = vertexCount() / size + 1;
+        }
+
+        int[] a = new int[vertexCount() * vertexCount()];
+        int[] recvA = new int[portionsSize[0] * vertexCount()];
+        int additing = 0;
+
+        if (vertexCount() % portionsSize[0] != 0) {
+            additing = vertexCount() * (portionsSize[0] - vertexCount() % portionsSize[0]);
+            a = new int[vertexCount() * vertexCount() + additing];
+        }
+
+        int[] array = Stream.of(matrix)
+                .flatMapToInt(IntStream::of)
+                .toArray();
+
+        System.arraycopy(array, 0, a, 0, vertexCount() * vertexCount());
+
+        if (rank == 0) {
+            startTime = System.currentTimeMillis();
+            System.out.println(Arrays.deepToString(matrix));
+
+        }
+        MPI.COMM_WORLD.Scatter(a, 0, portionsSize[0] * vertexCount(), MPI.INT, recvA, 0, portionsSize[0] * vertexCount(), MPI.INT, 0);
+        int[] degree = new int[portionsSize[0]];
+
+        int board = recvA.length / portionsSize[0];
+
+        for (int i = 0; i < portionsSize[0]; i++) {
+            for (int j = 0; j < board; j++) {
+                if (recvA[i * board + j] != 0)
+                    degree[i] += recvA[i * board + j];
+            }
+        }
+
+        MPI.COMM_WORLD.Gather(degree, 0, degree.length, MPI.INT, verticesDegrees, 0, degree.length, MPI.INT, 0);
+
+
+        if (rank == 0) {
+            boolean isThorus = true;
+            for (int i : verticesDegrees) {
+                if (i != 4) {
+                    isThorus = false;
+                    break;
+                }
+            }
+            if (isThorus && check())
+                System.out.println("Graph definitely is Thorus & Time of ThorusCheck is equal to " + ((double) (System.currentTimeMillis() - startTime)));
+            else
+                System.out.println("Graph definitely isn`t Thorus & Time of ThorusCheck is equal to " + ((double) (System.currentTimeMillis() - startTime)));
+
+        }
+        MPI.Finalize();
+    }
 }

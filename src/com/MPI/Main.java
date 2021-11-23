@@ -1,8 +1,5 @@
 package com.MPI;
 
-import com.MPI.graph.Graph;
-
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class Main {
@@ -59,7 +56,11 @@ public class Main {
             }
             case 8 -> {
                 PracticeEight practiceEight = new PracticeEight();
-                practiceEight.non_par();
+                practiceEight.run(args);
+            }
+            case 9 -> {
+                PracticeNine practiceNine = new PracticeNine();
+                practiceNine.non_par();
                 //practiceEight.run(args);
             }
         }
