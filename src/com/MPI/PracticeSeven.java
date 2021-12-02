@@ -16,5 +16,9 @@ public class PracticeSeven {
         graph.findMaxDegree(args);
     }
 
+    public void non_par() {
+        graph.non_par();
+    }
+
 
 }

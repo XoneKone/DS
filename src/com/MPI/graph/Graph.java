@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -17,9 +18,21 @@ public class Graph {
     private int[][] matrix;
     private int[] degrees;
     private int[] vertices;
+    private int size;
 
     public Graph(String path) throws IOException {
-        fillMatrix(path);
+        //fillMatrix(path);
+        size = 100;
+        Random r = new Random(123);
+        matrix = new int[size][size];
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (i == j)
+                    matrix[i][j] = 0;
+                else
+                    matrix[i][j] = r.nextDouble() >= 0.5 ? 1 : 0;
+            }
+        }
     }
 
     public void fillMatrix(String path) throws IOException {
@@ -45,7 +58,7 @@ public class Graph {
     }
 
     public int vertexCount() {
-        return vertices.length;
+        return size;
     }
 
     public int degree(int vertex) {
@@ -55,6 +68,25 @@ public class Graph {
                 vertexDegree++;
         }
         return vertexDegree;
+    }
+
+    public void non_par() {
+
+
+        double startTime = System.currentTimeMillis();
+
+        int max = 0;
+        int degree = 0;
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = 0; j < matrix.length; j++) {
+                if (matrix[i][j] != 0)
+                    degree += 1;
+            }
+            if (max < degree)
+                max = degree;
+            degree = 0;
+        }
+        System.out.println("Answer is " + max + " & Time of MaxDegree is equal to " + ((double) (System.currentTimeMillis() - startTime)));
     }
 
     public void findMaxDegree(String[] args) {
@@ -113,7 +145,6 @@ public class Graph {
 
         if (rank == 0) {
             System.out.println("Answer is " + result[0] + " & Time of MaxDegree is equal to " + ((double) (System.currentTimeMillis() - startTime)));
-
         }
         MPI.Finalize();
     }
@@ -196,7 +227,6 @@ public class Graph {
                 System.out.println("Graph definitely is Thorus & Time of ThorusCheck is equal to " + ((double) (System.currentTimeMillis() - startTime)));
             else
                 System.out.println("Graph definitely isn`t Thorus & Time of ThorusCheck is equal to " + ((double) (System.currentTimeMillis() - startTime)));
-
         }
         MPI.Finalize();
     }
