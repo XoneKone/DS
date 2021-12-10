@@ -45,8 +45,8 @@ public class Main {
             }
             case 9 -> {
                 BlockChain blockChain = new BlockChain();
-                blockChain.non_par();
-                //practiceEight.run(args);
+                blockChain.run(args);
+
             }
         }
     }

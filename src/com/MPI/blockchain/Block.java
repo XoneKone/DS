@@ -16,8 +16,8 @@ public class Block {
     public String hash;
     public String previousHash;
     public String merkleRoot;
-    public ArrayList<Transaction> transactions = new ArrayList<Transaction>(); //our data will be a simple message.
-    public long timeStamp; //as number of milliseconds since 1/1/1970.
+    public ArrayList<Transaction> transactions = new ArrayList<Transaction>();
+    public long timeStamp;
     public int nonce;
     public String data;
 
@@ -35,7 +35,7 @@ public class Block {
             nonce++;
             hash = calculateHash();
         }
-        System.out.println("Block Mined!!! : " + hash);
+
         return hash;
     }
 
@@ -43,9 +43,9 @@ public class Block {
         return StringUtil.applySha256(previousHash + Long.toString(timeStamp) + Integer.toString(nonce) + data);
     }
 
-    //Add transactions to this block
+
     public boolean addTransaction(Transaction transaction) {
-        //process transaction and check if valid, unless block is genesis block then ignore.
+
         if (transaction == null) return false;
         if ((!"0".equals(previousHash))) {
             if ((!transaction.processTransaction())) {
@@ -70,4 +70,16 @@ public class Block {
     public void setData(String data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return "hash:" + this.hash + "\n" +
+                "previousHash: " + this.previousHash + "\n" +
+                "merkleRoot: " + this.merkleRoot + "\n" +
+                "transactions: " + this.transactions + "\n" +
+                "timeStamp: " + this.timeStamp + "\n" +
+                "nonce: " + this.nonce + "\n" +
+                "data: " + this.data + "\n";
+    }
+
 }

@@ -9,72 +9,49 @@ import java.util.List;
 
 
 import com.google.gson.*;
+import mpi.Status;
 import org.jetbrains.annotations.NotNull;
+
+import javax.imageio.plugins.bmp.BMPImageWriteParam;
 
 public class BlockChain {
     public static ArrayList<Block> blockchain = new ArrayList<Block>();
     public static HashMap<String, TransactionOutputs> UTXOs = new HashMap<String, TransactionOutputs>();
 
-    public static int difficulty = 3;
+    public static int difficulty = 4;
     public static float minimumTransaction = 0.1f;
+    public static Block genesis;
     public static Wallet walletA;
     public static Wallet walletB;
     public static Transaction genesisTransaction;
 
     public BlockChain() {
-        setUp();
     }
 
     public void setUp() {
-        Block genesisBlock = new Block("Genesis Block", "0");
-        System.out.println("Trying to Mine Genesis Block... ");
-        genesisBlock.mineBlock(difficulty);
-        blockchain.add(genesisBlock);
-    }
-
-    public void non_par() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider()); //Setup Bouncey castle as a Security Provider
 
-        //Create wallets:
+
         walletA = new Wallet();
         walletB = new Wallet();
         Wallet coinbase = new Wallet();
 
-        //create genesis transaction, which sends 100 NoobCoin to walletA:
-        genesisTransaction = new Transaction(coinbase.publicKey, walletA.publicKey, 100f, null);
-        genesisTransaction.generateSignature(coinbase.privateKey);     //manually sign the genesis transaction
-        genesisTransaction.transactionId = "0"; //manually set the transaction id
-        genesisTransaction.outputs.add(new TransactionOutputs(genesisTransaction.reciepient, genesisTransaction.value, genesisTransaction.transactionId)); //manually add the Transactions Output
-        UTXOs.put(genesisTransaction.outputs.get(0).id, genesisTransaction.outputs.get(0)); //It's important to store our first transaction in the UTXOs list.
+
+        genesisTransaction = new Transaction(coinbase.publicKey, walletA.publicKey, 1000f, null);
+        genesisTransaction.generateSignature(coinbase.privateKey);
+        genesisTransaction.transactionId = "0";
+        genesisTransaction.outputs.add(new TransactionOutputs(genesisTransaction.reciepient, genesisTransaction.value, genesisTransaction.transactionId));
+        UTXOs.put(genesisTransaction.outputs.get(0).id, genesisTransaction.outputs.get(0));
 
         System.out.println("Creating and Mining Genesis block... ");
-        Block genesis = new Block("0", "0");
+        genesis = new Block("Genesis", "0");
         genesis.addTransaction(genesisTransaction);
         addBlock(genesis);
+    }
 
-        //testing
-        Block block1 = new Block("First Block",genesis.hash);
-        System.out.println("\nWalletA's balance is: " + walletA.getBalance());
-        System.out.println("\nWalletA is Attempting to send funds (40) to WalletB...");
-        block1.addTransaction(walletA.sendFunds(walletB.publicKey, 40f));
-        addBlock(block1);
-        System.out.println("\nWalletA's balance is: " + walletA.getBalance());
-        System.out.println("WalletB's balance is: " + walletB.getBalance());
+    public void non_par() {
 
-        Block block2 = new Block("Second Block",block1.hash);
-        System.out.println("\nWalletA Attempting to send more funds (1000) than it has...");
-        block2.addTransaction(walletA.sendFunds(walletB.publicKey, 1000f));
-        addBlock(block2);
-        System.out.println("\nWalletA's balance is: " + walletA.getBalance());
-        System.out.println("WalletB's balance is: " + walletB.getBalance());
 
-        Block block3 = new Block("Third Block",block2.hash);
-        System.out.println("\nWalletB is Attempting to send funds (20) to WalletA...");
-        block3.addTransaction(walletB.sendFunds(walletA.publicKey, 20));
-        System.out.println("\nWalletA's balance is: " + walletA.getBalance());
-        System.out.println("WalletB's balance is: " + walletB.getBalance());
-
-        isChainValid();
     }
 
     public static Boolean isChainValid() {
@@ -155,20 +132,78 @@ public class BlockChain {
         return true;
     }
 
-    public static void addBlock(Block newBlock) {
+    public void addBlock(Block newBlock) {
         newBlock.mineBlock(difficulty);
         blockchain.add(newBlock);
     }
 
     public void run(String[] args) {
+        double time = 0;
+        int number = 0;
+        int count = 1;
+        int source;
+        Status st;
+        char[] message;
+        char[] prevHash;
+        String prev;
+
         MPI.Init(args);
         int rank = MPI.COMM_WORLD.Rank();
         int size = MPI.COMM_WORLD.Size();
-        String prev = blockchain.get(blockchain.size() - 1).getPreviousHash();
-        char[] previousHash = prev.toCharArray();
-        MPI.COMM_WORLD.Bcast(previousHash, 0, previousHash.length, MPI.CHAR, 0);
 
 
+        MPI.COMM_WORLD.Barrier();
+
+
+        if (rank == 0) {
+            time = System.currentTimeMillis();
+
+            for (int i = 1; i < size; i++) {
+                st = MPI.COMM_WORLD.Probe(i, 0);
+                number = st.Get_count(MPI.CHAR);
+                message = new char[number];
+                MPI.COMM_WORLD.Recv(message, 0, message.length, MPI.CHAR, i, 0);
+                if (blockchain.isEmpty())
+                    setUp();
+
+                prev = blockchain.get(blockchain.size() - 1).hash;
+                Block block = new Block("Block number:" + count + " from rank: " + i, prev);
+                count++;
+
+                if (String.valueOf(message).equals("From")) {
+                    System.out.println("\nWalletA is Attempting to send funds (400) to WalletB...");
+                    block.addTransaction(walletA.sendFunds(walletB.publicKey, 400f));
+
+                } else {
+                    System.out.println("\nWalletB is Attempting to send funds (500) to WalletA...");
+                    block.addTransaction(walletB.sendFunds(walletA.publicKey, 400f));
+                }
+
+                addBlock(block);
+
+            }
+
+        } else {
+            if (rank % 2 == 0) {
+                message = "To".toCharArray();
+            } else {
+                message = "From".toCharArray();
+            }
+            MPI.COMM_WORLD.Send(message, 0, message.length, MPI.CHAR, 0, 0);
+        }
+
+
+        if (rank == 0) {
+            isChainValid();
+            System.out.println("\nWalletA's balance is: " + walletA.getBalance());
+            System.out.println("WalletB's balance is: " + walletB.getBalance());
+            System.out.println("Time is: " + (System.currentTimeMillis() - time));
+            System.out.println("\nThe block chain: ");
+            for (Block b : blockchain) {
+                System.out.println(b + "\n");
+
+            }
+        }
         MPI.Finalize();
     }
 }
